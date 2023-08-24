@@ -1,0 +1,47 @@
+{"properties": [
+  {
+    "name": "sms.api-key",
+    "type": "java.lang.String",
+    "description": "A description for 'sms.api-key'"
+  },
+  {
+    "name": "sms.send-id",
+    "type": "java.lang.String",
+    "description": "A description for 'sms.send-id'"
+  },
+  {
+    "name": "sms.language",
+    "type": "java.lang.String",
+    "description": "A description for 'sms.language'"
+  },
+  {
+    "name": "sms.route",
+    "type": "java.lang.String",
+    "description": "A description for 'sms.route'"
+  },
+  {
+    "name": "amazonProperties.endpoint-url",
+    "type": "java.lang.String",
+    "description": "A description for 'amazonProperties.endpoint-url'"
+  },
+  {
+    "name": "amazonProperties.accessKey",
+    "type": "java.lang.String",
+    "description": "A description for 'amazonProperties.accessKey'"
+  },
+  {
+    "name": "amazonProperties.bucketName",
+    "type": "java.lang.String",
+    "description": "A description for 'amazonProperties.bucketName'"
+  },
+  {
+    "name": "amazonProperties.secretKey",
+    "type": "java.lang.String",
+    "description": "A description for 'amazonProperties.secretKey'"
+  },
+  {
+    "name": "amazonProperties.region",
+    "type": "java.lang.String",
+    "description": "A description for 'amazonProperties.region'"
+  }
+]}

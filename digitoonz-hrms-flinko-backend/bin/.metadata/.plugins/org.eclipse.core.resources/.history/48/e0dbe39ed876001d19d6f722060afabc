@@ -1,0 +1,11 @@
+package com.te.flinko.repository.employee;
+
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+import com.te.flinko.entity.employee.EmployeeReportingInfo;
+
+@Repository
+public interface EmployeeReportingInfoRepository extends JpaRepository<EmployeeReportingInfo,Long>{
+
+}

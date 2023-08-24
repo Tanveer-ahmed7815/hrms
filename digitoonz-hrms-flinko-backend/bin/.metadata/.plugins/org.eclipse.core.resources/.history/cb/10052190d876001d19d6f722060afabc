@@ -1,0 +1,18 @@
+package com.te.flinko.repository.employee;
+
+import java.util.List;
+
+import org.springframework.data.jpa.repository.JpaRepository;
+
+import com.te.flinko.entity.employee.EmployeeReferenceInfo;
+
+<<<<<<< HEAD:digitoonz-hrms-flinko-backend/src/main/java/com/te/flinko/repository/employee/EmployeeReferenceInfoRepository.java
+@Repository
+public interface EmployeeReferenceInfoRepository extends JpaRepository<EmployeeReferenceInfo,Long> {
+
+	List<EmployeeReferenceInfo> findByEmployeePersonalInfoCompanyInfoCompanyId(Long companyId);
+=======
+public interface EmployeeReferenceInfoRepo extends JpaRepository<EmployeeReferenceInfo, Long>{
+	
+>>>>>>> d8f50fe38a3ca3e0cdf4ce25f1f307209be3871c:digitoonz-hrms-flinko-backend/digitoonz-hrms-flinko-backend/src/main/java/com/te/flinko/repository/employee/EmployeeReferenceInfoRepo.java
+}

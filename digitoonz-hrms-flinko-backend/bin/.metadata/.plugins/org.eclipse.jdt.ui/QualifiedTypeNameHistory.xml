@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<qualifiedTypeNameHistroy>
+    <fullyQualifiedTypeName name="org.springframework.stereotype.Repository"/>
+    <fullyQualifiedTypeName name="com.te.flinko.repository.employee.EmployeeReportingInfoRepository"/>
+    <fullyQualifiedTypeName name="com.te.flinko.repository.employee.EmployeeAddressInfoRepository"/>
+    <fullyQualifiedTypeName name="com.te.flinko.repository.employee.EmployeeDependentInfoRepository"/>
+</qualifiedTypeNameHistroy>

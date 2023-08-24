@@ -1,0 +1,591 @@
+package com.te.flinko.service.hr;
+
+import java.math.BigDecimal;
+import java.time.Local;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.stream.Collectors;
+
+import javax.transaction.Transactional;
+
+import org.springframework.beans.BeanUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import com.te.flinko.dto.hr.ApproveRequestDTO;
+import com.te.flinko.dto.hr.BankInformationDTO;
+import com.te.flinko.dto.hr.CandidateDetailsDTO;
+import com.te.flinko.dto.hr.CandidatesDisplayDetailsDTO;
+import com.te.flinko.dto.hr.DependentInformationDTO;
+import com.te.flinko.dto.hr.EmployeeDependantInfoDetailsDTO;
+import com.te.flinko.dto.hr.EmployeeDisplayDetailsDTO;
+import com.te.flinko.dto.hr.EmployeeEducationDetailsDTO;
+import com.te.flinko.dto.hr.EmployeeEmploymentDTO;
+import com.te.flinko.dto.hr.EmployeeNoticePeriodDTO;
+import com.te.flinko.dto.hr.EmployeeReportingResponseDTO;
+import com.te.flinko.dto.hr.EmployementInformationDTO;
+import com.te.flinko.dto.hr.ExitEmployeeDetailsDTO;
+import com.te.flinko.dto.hr.GeneralInformationDTO;
+import com.te.flinko.dto.hr.InterviewInformationDTO;
+import com.te.flinko.dto.hr.OrganiserDetialsDTO;
+import com.te.flinko.dto.hr.PassAndVisaDTO;
+import com.te.flinko.dto.hr.PersonalInformationDTO;
+import com.te.flinko.dto.hr.RefrencePersonInfoDTO;
+import com.te.flinko.dto.hr.RejectCandidateRequestDTO;
+import com.te.flinko.dto.hr.ReportingInformationDTO;
+import com.te.flinko.dto.hr.ResendLinkDTO;
+import com.te.flinko.dto.hr.WorkInformationDTO;
+import com.te.flinko.entity.admin.CompanyBranchInfo;
+import com.te.flinko.entity.admin.CompanyInfo;
+import com.te.flinko.entity.employee.CompanyEmployeeResignationDetails;
+import com.te.flinko.entity.employee.EmployeeAddressInfo;
+import com.te.flinko.entity.employee.EmployeeBankInfo;
+import com.te.flinko.entity.employee.EmployeeDependentInfo;
+import com.te.flinko.entity.employee.EmployeeEducationInfo;
+import com.te.flinko.entity.employee.EmployeeEmploymentInfo;
+import com.te.flinko.entity.employee.EmployeeLoginInfo;
+import com.te.flinko.entity.employee.EmployeeOfficialInfo;
+import com.te.flinko.entity.employee.EmployeePersonalInfo;
+import com.te.flinko.entity.employee.EmployeeReferenceInfo;
+import com.te.flinko.entity.employee.EmployeeReportingInfo;
+import com.te.flinko.entity.employee.EmployeeResignationDiscussion;
+import com.te.flinko.entity.employee.EmployeeVisaInfo;
+import com.te.flinko.entity.hr.CandidateInterviewInfo;
+import com.te.flinko.repository.admin.CompanyBranchInfoRepo;
+import com.te.flinko.repository.admin.CompanyInfoRepo;
+import com.te.flinko.repository.employee.CompanyEmployeeResignationDetailsRepo;
+import com.te.flinko.repository.employee.EmployeeAddressInfoRepo;
+import com.te.flinko.repository.employee.EmployeeDependentInfoRepo;
+import com.te.flinko.repository.employee.EmployeeLoginRepository;
+import com.te.flinko.repository.employee.EmployeePersonalInfoRepository;
+import com.te.flinko.repository.employee.EmployeeReferenceInfoRepo;
+import com.te.flinko.repository.employee.EmployeeReportingInfoRepo;
+import com.te.flinko.repository.hr.CandidateInfoRepo;
+import com.te.flinko.repository.hr.CandidateInterviewInfoRepo;
+
+@Service
+public class EmployeeManagementServiceImpl implements EmployeeManagementService {
+
+	@Autowired
+	EmployeePersonalInfoRepository employeePersonalInfoRepository;
+
+	@Autowired
+	EmployeeLoginRepository employeeLoginRepository;
+
+	@Autowired
+	EmployeeReportingInfoRepo employeeReportingInfoRepo;
+
+	@Autowired
+	EmployeeAddressInfoRepo employeeddressInfoRepo;
+
+	@Autowired
+	EmployeeDependentInfoRepo dependentInfoRepo;
+
+	@Autowired
+	EmployeeReferenceInfoRepo employeeReferenceInfoRepo;
+
+	@Autowired
+	CandidateInterviewInfoRepo candidateInterviewInfoRepo;
+
+	@Autowired
+	CandidateInfoRepo candidateInfoRepo;
+
+	@Autowired
+	CompanyInfoRepo companyInfoRepo;
+
+	@Autowired
+	CompanyEmployeeResignationDetailsRepo resignationDetailsRepo;
+
+	@Autowired
+	CompanyBranchInfoRepo branchInfoRepo;
+
+	@Override
+	public List<CandidatesDisplayDetailsDTO> getCandidatesDetails(Long companyId) {
+		List<EmployeePersonalInfo> filteredEmployeeInfo = employeePersonalInfoRepository
+				.findByCompanyInfoCompanyIdAndStatus(companyId, null);
+		List<CandidatesDisplayDetailsDTO> listCandidatesDetailsDTO = new ArrayList<>();
+		filteredEmployeeInfo.stream().forEach((EmployeePersonalInfo e) -> {
+			CandidatesDisplayDetailsDTO candidatesDisplayDetailsDTO = new CandidatesDisplayDetailsDTO();
+			candidatesDisplayDetailsDTO.setCandidateId(e.getEmployeeInfoId());
+			candidatesDisplayDetailsDTO.setFullName(e.getFirstName() + " " + e.getLastName());
+			candidatesDisplayDetailsDTO.setEmailId(e.getEmailId());
+			candidatesDisplayDetailsDTO.setDesignation(e.getEmployeeOfficialInfo().getDesignation());
+			candidatesDisplayDetailsDTO.setYearOfExperience(e.getCandidateInfo().getYearOfExperience());
+			candidatesDisplayDetailsDTO.setMobileNumber(e.getMobileNumber());
+			listCandidatesDetailsDTO.add(candidatesDisplayDetailsDTO);
+		});
+		return listCandidatesDetailsDTO;
+	}
+
+	@Override
+	@Transactional
+	public CandidateDetailsDTO getCandidateDetails(Long id) {
+		Optional<EmployeePersonalInfo> findById = employeePersonalInfoRepository.findById(id);
+		CandidateDetailsDTO candidateDetailsDTO = new CandidateDetailsDTO();
+		if (!findById.isPresent()) {
+			throw new RuntimeException("Candidate Details does not exist");
+		}
+
+		EmployeePersonalInfo employeePersonalInfo = findById.get();
+		candidateDetailsDTO.setFullName(employeePersonalInfo.getFirstName() + " " + employeePersonalInfo.getLastName());
+		candidateDetailsDTO.setEmployeeId(employeePersonalInfo.getEmployeeInfoId());
+		candidateDetailsDTO.setMobileNumber(employeePersonalInfo.getMobileNumber());
+		candidateDetailsDTO.setDesignation(employeePersonalInfo.getEmployeeOfficialInfo().getDesignation());
+		candidateDetailsDTO.setDepartment(employeePersonalInfo.getEmployeeOfficialInfo().getDepartment());
+
+		List<EmployeeBankInfo> employeeBankInfoList = employeePersonalInfo.getEmployeeBankInfoList();
+		List<BankInformationDTO> employeeBankDetailsList = new ArrayList<>();
+		employeeBankInfoList.stream().forEach((EmployeeBankInfo b) -> {
+			BankInformationDTO employeeBankDTO = new BankInformationDTO();
+			BeanUtils.copyProperties(b, employeeBankDTO);
+			employeeBankDetailsList.add(employeeBankDTO);
+		});
+		candidateDetailsDTO.setEmployeeBankInfoList(employeeBankDetailsList);
+
+		List<EmployeeEducationInfo> employeeEducationInfoList = employeePersonalInfo.getEmployeeEducationInfoList();
+		List<EmployeeEducationDetailsDTO> educationDetails = new ArrayList<>();
+		employeeEducationInfoList.stream().forEach((EmployeeEducationInfo e) -> {
+			EmployeeEducationDetailsDTO employeeEducationDetails = new EmployeeEducationDetailsDTO();
+			BeanUtils.copyProperties(e, employeeEducationDetails);
+			educationDetails.add(employeeEducationDetails);
+		});
+		candidateDetailsDTO.setEmployeeEducationInfoList(educationDetails);
+
+		List<EmployeeEmploymentInfo> employeeEmploymentInfoList = employeePersonalInfo.getEmployeeEmploymentInfoList();
+		List<EmployeeEmploymentDTO> employeeEmploymentList = new ArrayList<>();
+		employeeEmploymentInfoList.stream().forEach((e) -> {
+			EmployeeEmploymentDTO employeeEmploymentDTO = new EmployeeEmploymentDTO();
+			BeanUtils.copyProperties(e, employeeEmploymentDTO);
+			employeeEmploymentList.add(employeeEmploymentDTO);
+		});
+		candidateDetailsDTO.setEmployeeEmployment(employeeEmploymentList);
+
+		List<EmployeeDependentInfo> employeeDependentInfoList = employeePersonalInfo.getEmployeeDependentInfoList();
+		List<EmployeeDependantInfoDetailsDTO> dependantInfoDetailsList = new ArrayList<>();
+		employeeDependentInfoList.stream().forEach((EmployeeDependentInfo e) -> {
+			EmployeeDependantInfoDetailsDTO employeeDependantInfoDetailsDTO = new EmployeeDependantInfoDetailsDTO();
+			BeanUtils.copyProperties(e, employeeDependantInfoDetailsDTO);
+			dependantInfoDetailsList.add(employeeDependantInfoDetailsDTO);
+		});
+		candidateDetailsDTO.setEmployeeDependentInfoList(dependantInfoDetailsList);
+
+		return candidateDetailsDTO;
+	}
+
+	@Override
+	@Transactional
+	public boolean approveCandidates(ApproveRequestDTO approveRequestDTO, Long userId) {
+		Optional<EmployeePersonalInfo> employeeInfoOptional = employeePersonalInfoRepository
+				.findById(approveRequestDTO.getPersonalId());
+		if (!employeeInfoOptional.isPresent()) {
+			throw new RuntimeException("Employee Details not found");
+		}
+		EmployeePersonalInfo employeePersonalInfo = employeeInfoOptional.get();
+		EmployeeLoginInfo employeeLoginInfo = new EmployeeLoginInfo();
+		employeeLoginInfo.setEmployeeId(approveRequestDTO.getEmployeeId());
+		employeeLoginInfo.setCurrentPassword(approveRequestDTO.getPassword());
+		employeeLoginInfo.setEmployeePersonalInfo(employeePersonalInfo);
+//		employeeLoginInfo.setRoles(Arrays.asList("ROLE_EMPLOYEE"));
+		Map<String, String> status = employeePersonalInfo.getStatus();
+		status.put("approvedBy", userId + "");
+		employeePersonalInfo.setIsActive(true);
+
+		// Adding details to Official Info table
+		EmployeeOfficialInfo employeeOfficialInfo = new EmployeeOfficialInfo();
+		employeeOfficialInfo.setEmployeeId(approveRequestDTO.getEmployeeId());
+		employeeOfficialInfo.setOfficialEmailId(employeePersonalInfo.getEmailId());
+		// Mapping the official data to personal info
+		employeePersonalInfo.setEmployeeOfficialInfo(employeeOfficialInfo);
+		employeePersonalInfoRepository.save(employeePersonalInfo);
+		employeeLoginRepository.save(employeeLoginInfo);
+		return true;
+	}
+
+	@Override
+	@Transactional
+	public boolean rejectCandidate(RejectCandidateRequestDTO candidateRequestDTO) {
+		Optional<EmployeePersonalInfo> employeeOptional = employeePersonalInfoRepository
+				.findById(candidateRequestDTO.getPersonalId());
+		if (!employeeOptional.isPresent()) {
+			throw new RuntimeException("EployeeDetails not Found");
+		}
+		EmployeePersonalInfo employeePersonalInfo = employeeOptional.get();
+		Map<String, String> status = employeePersonalInfo.getStatus();
+		status.put("rejectedBy", candidateRequestDTO.getRejectedBy());
+		status.put("reason", candidateRequestDTO.getReason());
+		employeePersonalInfo.setStatus(status);
+		employeePersonalInfoRepository.save(employeePersonalInfo);
+		return true;
+	}
+
+	@Override
+	public boolean resendLink(ResendLinkDTO resendLinkDTO) {
+		// should call the method to send mail
+		Optional<EmployeePersonalInfo> employeeOptional = employeePersonalInfoRepository
+				.findById(resendLinkDTO.getPersonalInfoId());
+		if (!employeeOptional.isPresent()) {
+			throw new RuntimeException("EployeeDetails not Found");
+		}
+		EmployeePersonalInfo employeePersonalInfo = employeeOptional.get();
+		Map<String, String> status = employeePersonalInfo.getStatus();
+		status.put("sentby", resendLinkDTO.getResentBy());
+		status.put("comment", resendLinkDTO.getComment());
+		return true;
+	}
+
+	@Override
+	public List<EmployeeDisplayDetailsDTO> getCurrentEmployees(Long companyId) {
+		List<EmployeePersonalInfo> employeeList = employeePersonalInfoRepository.findByCompanyInfoCompanyId(companyId);
+		if (employeeList.isEmpty()) {
+			throw new RuntimeException("No Employees to display");
+		}
+		List<EmployeePersonalInfo> currentEmployees = employeeList.stream()
+				.filter(e -> e.getStatus().containsKey("approvedBy")).collect(Collectors.toList());
+
+		List<EmployeeDisplayDetailsDTO> currentEmployeeDTOList = new ArrayList<>();
+		currentEmployees.stream().forEach((e) -> {
+			EmployeeDisplayDetailsDTO employeeDetailsDTO = new EmployeeDisplayDetailsDTO();
+			employeeDetailsDTO.setEmployeeId(e.getEmployeeInfoId());
+			employeeDetailsDTO.setFullName(e.getFirstName() + " " + e.getLastName());
+			employeeDetailsDTO.setOfficialEmailId(e.getEmployeeOfficialInfo().getOfficialEmailId());
+			employeeDetailsDTO.setIsActive(e.getIsActive());
+			employeeDetailsDTO.setDepartment(e.getEmployeeOfficialInfo().getDepartment());
+			employeeDetailsDTO.setDesignation(e.getEmployeeOfficialInfo().getDesignation());
+			currentEmployeeDTOList.add(employeeDetailsDTO);
+		});
+		return currentEmployeeDTOList;
+	}
+
+	@Override
+	public GeneralInformationDTO addEmployeePersonalInfo(GeneralInformationDTO information, Long companyId) {
+		Optional<CompanyInfo> optionalCompany = companyInfoRepo.findById(companyId);
+		if (!optionalCompany.isPresent()) {
+			throw new RuntimeException("Company not found with id " + companyId);
+		}
+
+		EmployeePersonalInfo employeePersonalInfo = new EmployeePersonalInfo();
+		BeanUtils.copyProperties(information, employeePersonalInfo);
+		employeePersonalInfo.setCompanyInfo(optionalCompany.get());
+		BeanUtils.copyProperties(employeePersonalInfoRepository.save(employeePersonalInfo), information);
+		return information;
+	}
+
+	@Override
+	public WorkInformationDTO addWorkInformation(WorkInformationDTO workInformation) {
+		Optional<EmployeePersonalInfo> optionalEmployee = employeePersonalInfoRepository
+				.findById(workInformation.getPersonalId());
+		if (optionalEmployee.isEmpty()) {
+			throw new RuntimeException("The employee is not present");
+		}
+		EmployeePersonalInfo employeePersonalInfo = optionalEmployee.get();
+		EmployeeOfficialInfo employeeOfficialInfo = new EmployeeOfficialInfo();
+		BeanUtils.copyProperties(workInformation, employeeOfficialInfo);
+		
+		Optional<CompanyBranchInfo> branchDetails = branchInfoRepo.findByBranchName(workInformation.getBranchName());
+		branchDetails.ifPresentOrElse(employeeOfficialInfo::setCompanyBranchInfo,()-> {throw new RuntimeException("branch details not present");});
+		employeePersonalInfo.setEmployeeOfficialInfo(employeeOfficialInfo);
+		BeanUtils.copyProperties(employeePersonalInfoRepository.save(employeePersonalInfo), workInformation);	
+		branchDetails.ifPresent((CompanyBranchInfo i)->workInformation.setBranchName(i.getBranchName()));
+		return workInformation;
+	}
+
+	@Override
+	@Transactional
+	public EmployeeReportingResponseDTO mapReportingInformation(ReportingInformationDTO reportingInformation) {
+		Optional<EmployeePersonalInfo> employeeInfo = employeePersonalInfoRepository
+				.findById(reportingInformation.getEmployeeInfoId());
+		Optional<EmployeePersonalInfo> reportingHr = employeePersonalInfoRepository
+				.findById(reportingInformation.getReportingHRid());
+		Optional<EmployeePersonalInfo> managerInfo = employeePersonalInfoRepository
+				.findById(reportingInformation.getReportingManagerId());
+		EmployeeReportingInfo employeeReportingInfo = new EmployeeReportingInfo();
+		managerInfo.ifPresentOrElse(employeeReportingInfo::setReportingManager,
+				() -> new RuntimeException("Manager info is not present"));
+		reportingHr.ifPresentOrElse(employeeReportingInfo::setReportingHR,
+				() -> new RuntimeException("Hr information is not present"));
+		employeeInfo.ifPresentOrElse(employeeReportingInfo::setEmployeePersonalInfo,
+				() -> new RuntimeException("Employee Info is not present"));
+		EmployeeReportingResponseDTO employeeReportingResponseDTO = new EmployeeReportingResponseDTO();
+		employeeReportingInfoRepo.save(employeeReportingInfo);
+		employeeInfo.ifPresentOrElse((i)->employeeReportingResponseDTO.setEmployeeName(i.getFirstName()), ()->{throw new RuntimeException("Employee data is not found");});
+		reportingHr.ifPresentOrElse((i)->employeeReportingResponseDTO.setReportingHrName(i.getFirstName()), ()->{throw new RuntimeException("Hr data not found");});
+		managerInfo.ifPresentOrElse((i)->employeeReportingResponseDTO.setReportingManagerName(i.getFirstName()), ()-> {throw new RuntimeException("Manager Data not found");});
+		return employeeReportingResponseDTO;
+	}
+
+	@Override
+	public boolean addPersonalInformation(PersonalInformationDTO information) {
+		Optional<EmployeePersonalInfo> optionalEmployee = employeePersonalInfoRepository.findById(information.getEmployeeInfoId());
+		if (optionalEmployee.isEmpty()) {
+			throw new RuntimeException("Employee Not found with id" + information.getEmployeeInfoId());
+		}
+
+		EmployeePersonalInfo employeePersonalInfo = optionalEmployee.get();
+		BeanUtils.copyProperties(information, employeePersonalInfo);
+		List<EmployeeAddressInfo> addressList = employeePersonalInfo.getEmployeeAddressInfoList();
+		if (addressList.isEmpty()) {
+			information.getEmployeeAddressDTO().stream().forEach(i -> {
+				EmployeeAddressInfo employeeAddressInfo = new EmployeeAddressInfo();
+				BeanUtils.copyProperties(i, employeeAddressInfo);
+				employeeAddressInfo.setEmployeePersonalInfo(employeePersonalInfo);
+				employeePersonalInfo.getEmployeeAddressInfoList().add(employeeAddressInfo);
+			});
+		} else {
+			addressList.stream().forEach(o -> 
+				information.getEmployeeAddressDTO().stream().forEach(i -> {
+					if (i.getAddressType().equalsIgnoreCase(o.getAddressType())) {
+						BeanUtils.copyProperties(i, o);
+					}
+				})
+			);
+		}
+		employeePersonalInfoRepository.save(employeePersonalInfo);
+		return true;
+	}
+
+	@Override
+	public boolean addDependentInformation(List<DependentInformationDTO> dependentInformation,
+			Long employeeId, Long companyId) {
+		Optional<EmployeePersonalInfo> employeeInfo = employeePersonalInfoRepository.findById(employeeId);
+		if (employeeInfo.isEmpty()) {
+			throw new RuntimeException("Employee Data not found");
+		}
+		EmployeePersonalInfo employeePersonalInfo = employeeInfo.get();
+		List<EmployeeDependentInfo> dependentInfoList = employeePersonalInfo.getEmployeeDependentInfoList();
+		dependentInformation.forEach(i -> {
+			EmployeeDependentInfo employeeDependentInfo = new EmployeeDependentInfo();
+			BeanUtils.copyProperties(i, employeeDependentInfo);
+			employeeDependentInfo.setEmployeePersonalInfo(employeePersonalInfo);
+			dependentInfoList.add(employeeDependentInfo);
+		});
+		employeePersonalInfoRepository.save(employeePersonalInfo).getEmployeeDependentInfoList();
+		return true;
+	}
+
+	@Override
+	public boolean addEmploymentInformation(List<EmployementInformationDTO> information,
+			Long employeeId) {
+		Optional<EmployeePersonalInfo> employeeInfo = employeePersonalInfoRepository.findById(employeeId);
+		if (employeeInfo.isEmpty()) {
+			throw new RuntimeException("Employee Data not found");
+		}
+		EmployeePersonalInfo employeePersonalInfo = employeeInfo.get();
+		List<EmployeeEmploymentInfo> employmentInfoList = employeePersonalInfo.getEmployeeEmploymentInfoList();
+		employmentInfoList.forEach(i -> {
+			EmployeeEmploymentInfo employeeEmploymentInfo = new EmployeeEmploymentInfo();
+			BeanUtils.copyProperties(i, employeeEmploymentInfo);
+			employmentInfoList.add(employeeEmploymentInfo);
+			employeeEmploymentInfo.setEmployeePersonalInfo(employeePersonalInfo);
+		});
+		employeePersonalInfoRepository.save(employeePersonalInfo).getEmployeeEmploymentInfoList();
+		return true;
+	}
+
+	@Override
+	public boolean addEducaitonInformation(List<EmployeeEducationDetailsDTO> information,
+			Long employeeId) {
+		Optional<EmployeePersonalInfo> employeeInfo = employeePersonalInfoRepository.findById(employeeId);
+		if (employeeInfo.isEmpty()) {
+			throw new RuntimeException("Employee Data not found");
+		}
+		EmployeePersonalInfo employeePersonalInfo = employeeInfo.get();
+		List<EmployeeEducationInfo> employmentInfoList = employeePersonalInfo.getEmployeeEducationInfoList();
+		information.forEach(i -> {
+			EmployeeEducationInfo employeeEducationInfo = new EmployeeEducationInfo();
+			BeanUtils.copyProperties(i, employeeEducationInfo);
+			employmentInfoList.add(employeeEducationInfo);
+			employeeEducationInfo.setEmployeePersonalInfo(employeePersonalInfo);
+		});
+		employeePersonalInfoRepository.save(employeePersonalInfo).getEmployeeEducationInfoList();
+		return true;
+	}
+
+	@Override
+	public boolean addBankDetailsInfo(List<BankInformationDTO> information, Long employeeId) {
+		Optional<EmployeePersonalInfo> employeeInfo = employeePersonalInfoRepository.findById(employeeId);
+		if (employeeInfo.isEmpty()) {
+			throw new RuntimeException("Employee Data not found");
+		}
+		EmployeePersonalInfo employeePersonalInfo = employeeInfo.get();
+		List<EmployeeBankInfo> bankInfoList = employeePersonalInfo.getEmployeeBankInfoList();
+		information.forEach(i -> {
+			EmployeeBankInfo employeeBankInfo = new EmployeeBankInfo();
+			BeanUtils.copyProperties(i, employeeBankInfo);
+			bankInfoList.add(employeeBankInfo);
+			employeeBankInfo.setEmployeePersonalInfo(employeePersonalInfo);
+		});
+		employeePersonalInfoRepository.save(employeePersonalInfo).getEmployeeBankInfoList();
+		return true;
+	}
+
+	@Override
+	public boolean addReferenceInfo(RefrencePersonInfoDTO information) {
+		Optional<EmployeePersonalInfo> employeeInfo = employeePersonalInfoRepository
+				.findById(information.getEmployeeId());
+		Optional<EmployeePersonalInfo> referedEmployeeInfo = employeePersonalInfoRepository
+				.findById(information.getReferedEmployeeId());
+		EmployeeReferenceInfo employeeReferenceInfo = new EmployeeReferenceInfo();
+		employeeInfo.ifPresentOrElse(employeeReferenceInfo::setEmployeePersonalInfo,
+				() -> new RuntimeException("No employee data found"));
+		referedEmployeeInfo.ifPresentOrElse(i -> employeeReferenceInfo.setRefferalEmployeePersonalInfo(i),
+				() -> new RuntimeException("No employee data found"));
+		employeeReferenceInfoRepo.save(employeeReferenceInfo);
+		return true;
+	}
+
+	// Need to discuss
+	@Override
+	public EmployeeVisaInfo addPassandVisaInfo(PassAndVisaDTO information, Long employeeId) {
+		Optional<EmployeePersonalInfo> employeeInfo = employeePersonalInfoRepository.findById(employeeId);
+		if (!employeeInfo.isPresent()) {
+			throw new RuntimeException("Emplpyee Data not found");
+		}
+		EmployeePersonalInfo employeePersonalInfo = employeeInfo.get();
+		EmployeeVisaInfo employeeVisaInfo = new EmployeeVisaInfo();
+		List<EmployeeVisaInfo> visaList = new ArrayList<>();
+		BeanUtils.copyProperties(information, employeeVisaInfo);
+		employeeVisaInfo.setEmployeePersonalInfo(employeePersonalInfo);
+		BeanUtils.copyProperties(information, employeeInfo);
+		visaList.add(employeeVisaInfo);
+		employeeInfo.get().setEmployeeVisaInfoList(visaList);
+		return employeePersonalInfoRepository.save(employeeInfo.get()).getEmployeeVisaInfoList().get(0);
+	}
+
+	@Override
+	public List<CandidateInterviewInfo>  addInterviewInformation(List<InterviewInformationDTO> information, Long candidateId) {
+//		Optional<CandidateInfo> optionalCandidateInfo = candidateInfoRepo.findById(candidateId);
+//		if (!optionalCandidateInfo.isPresent()) {
+//			throw new RuntimeException("Candidate Information not found");
+//		}
+//		Optional<EmployeePersonalInfo> optionalInterviewer = employeePersonalInfoRepository
+//				.findById(information.getInterviewerId());
+//		if (!optionalInterviewer.isPresent()) {
+//			throw new RuntimeException("Interview Information is Not found");
+//		}
+//		information.forEach((i)->{
+//			
+//		});
+//		
+//		CandidateInterviewInfo candidateInterviewInfo = new CandidateInterviewInfo();
+//		BeanUtils.copyProperties(information, candidateInterviewInfo);
+//		candidateInterviewInfo.setCandidateInfo(optionalCandidateInfo.get());
+//		candidateInterviewInfo.setEmployeePersonalInfo(optionalInterviewer.get());
+//		Map<String, String> hashMap = new HashMap<>();
+//		hashMap.put("overallFeedback", information.getOverallFeedback());
+//		hashMap.put("detailedFeedback", information.getDetailedFeedback());
+//		hashMap.put("comment", information.getComment());
+//		candidateInterviewInfo.setFeedback(hashMap);
+//		return candidateInterviewInfoRepo.save(candidateInterviewInfo);
+		return null;
+	}
+
+	@Override
+	public EmployeeNoticePeriodDTO addNoticePeriodInformation(EmployeeNoticePeriodDTO noticePeriodInformation,
+			Long employeeId, Long companyId) {
+		Optional<CompanyInfo> optionalCompanyInfo = companyInfoRepo.findById(companyId);
+		if (!optionalCompanyInfo.isPresent()) {
+			throw new RuntimeException("Invalid company id is sent");
+		}
+		CompanyInfo companyInfo = optionalCompanyInfo.get();
+		Optional<EmployeePersonalInfo> optionalEmployeeInfo = employeePersonalInfoRepository.findById(employeeId);
+		if (!optionalEmployeeInfo.isPresent()) {
+			throw new RuntimeException("Employee is not present with following id" + employeeId);
+		}
+		EmployeePersonalInfo employeePersonalInfo = optionalEmployeeInfo.get();
+		LocalDate noticePeriodStartDate = noticePeriodInformation.getNoticePeriodStartDate();
+		LocalDate noticePeriodEndDate = noticePeriodStartDate
+				.plusDays(noticePeriodInformation.getNoticePeriodDuration().longValue());
+		CompanyEmployeeResignationDetails resignatoinInfo = new CompanyEmployeeResignationDetails();
+		resignatoinInfo.setNoticePeriodDuration(BigDecimal.valueOf(noticePeriodInformation.getNoticePeriodDuration()));
+		resignatoinInfo.setNoticePeriodStartDate(noticePeriodStartDate);
+		resignatoinInfo.setCompanyInfo(companyInfo);
+		resignatoinInfo.setEmployeePersonalInfo(employeePersonalInfo);
+		EmployeeNoticePeriodDTO employeeNoticePeriod = new EmployeeNoticePeriodDTO();
+		CompanyEmployeeResignationDetails savedData = resignationDetailsRepo.save(resignatoinInfo);
+		BeanUtils.copyProperties(savedData, employeeNoticePeriod);
+		employeeNoticePeriod.setNoticePeriodEndDate(noticePeriodEndDate);
+		employeeNoticePeriod.setNoticePeriodDuration(savedData.getNoticePeriodDuration().doubleValue());
+		return employeeNoticePeriod;
+	}
+
+	@Override
+	@Transactional
+	public boolean changeStatus(Long employeeId) {
+		Optional<EmployeePersonalInfo> optionalEmployeeInfo = employeePersonalInfoRepository.findById(employeeId);
+		if (!optionalEmployeeInfo.isPresent()) {
+			throw new RuntimeException("Employee not found with id " + employeeId);
+		}
+		EmployeePersonalInfo employeePersonalInfo = optionalEmployeeInfo.get();
+		employeePersonalInfo.setIsActive(!employeePersonalInfo.getIsActive());
+		return true;
+	}
+
+	@Override
+	public List<EmployeeDisplayDetailsDTO> getExitEmployees(Long companyId) {
+		List<CompanyEmployeeResignationDetails> listOfExitEmployees = resignationDetailsRepo
+				.findByCompanyInfoCompanyId(companyId);
+		if (listOfExitEmployees.isEmpty()) {
+			throw new RuntimeException("No Employees Applied for resignation");
+		}
+		List<EmployeeDisplayDetailsDTO> currentEmployeeDTOList = new ArrayList<>();
+		listOfExitEmployees.stream().forEach((CompanyEmployeeResignationDetails e) -> {
+			EmployeePersonalInfo employeePersonalInfo = e.getEmployeePersonalInfo();
+			EmployeeDisplayDetailsDTO employeeDetailsDTO = new EmployeeDisplayDetailsDTO();
+			employeeDetailsDTO.setEmployeeId(employeePersonalInfo.getEmployeeInfoId());
+			employeeDetailsDTO
+					.setFullName(employeePersonalInfo.getFirstName() + " " + employeePersonalInfo.getLastName());
+			employeeDetailsDTO.setIsActive(employeePersonalInfo.getIsActive());
+			employeeDetailsDTO.setOfficialEmailId(employeePersonalInfo.getEmployeeOfficialInfo().getOfficialEmailId());
+			employeeDetailsDTO.setDepartment(employeePersonalInfo.getEmployeeOfficialInfo().getDepartment());
+			employeeDetailsDTO.setDesignation(employeePersonalInfo.getEmployeeOfficialInfo().getDesignation());
+			currentEmployeeDTOList.add(employeeDetailsDTO);
+		});
+		return currentEmployeeDTOList;
+	}
+
+	@Override
+	public ExitEmployeeDetailsDTO getExitEmployeeDetails(Long employeeId) {
+		Optional<EmployeePersonalInfo> optionalEmployee = employeePersonalInfoRepository.findById(employeeId);
+		if (!optionalEmployee.isPresent()) {
+			throw new RuntimeException("Emplyee details not found");
+		}
+		EmployeePersonalInfo employeeInfo = optionalEmployee.get();
+		ExitEmployeeDetailsDTO exitEmployeeDetailsDTO = new ExitEmployeeDetailsDTO();
+		exitEmployeeDetailsDTO.setEmployeeInfoId(employeeInfo.getEmployeeInfoId());
+		exitEmployeeDetailsDTO.setFullName(employeeInfo.getFirstName() + " " + employeeInfo.getLastName());
+		exitEmployeeDetailsDTO.setMobileNumber(employeeInfo.getMobileNumber());
+		exitEmployeeDetailsDTO.setOfficialId(employeeInfo.getEmployeeOfficialInfo().getOfficialEmailId());
+		exitEmployeeDetailsDTO.setDesignation(employeeInfo.getEmployeeOfficialInfo().getDesignation());
+		if (employeeInfo.getEmployeeReportingInfoList().isEmpty()) {
+			throw new RuntimeException("Employee Does not have Reporting manager");
+		}
+		
+		exitEmployeeDetailsDTO.setReportingManager(employeeInfo.getEmployeeReportingInfoList()
+				.get(employeeInfo.getEmployeeReportingInfoList().size() - 1).getReportingManager().getFirstName());
+
+		// setting the organiser details
+		if (employeeInfo.getEmployeeResignationDiscussionList().isEmpty()) {
+			throw new RuntimeException("Employee Does not have any Discussion scheduled");
+		}
+		EmployeeResignationDiscussion employeeResignationDiscussion = employeeInfo
+				.getEmployeeResignationDiscussionList()
+				.get(employeeInfo.getEmployeeResignationDiscussionList().size()-1);
+		List<EmployeePersonalInfo> oragniserDetailsList = employeeResignationDiscussion.getEmployeePersonalInfoList();
+		List<OrganiserDetialsDTO> organiserList = new ArrayList<>();
+		oragniserDetailsList.forEach(s -> {
+			OrganiserDetialsDTO organiserDetialsDTO = new OrganiserDetialsDTO();
+			organiserDetialsDTO.setEmployeeName(s.getFirstName());
+			organiserDetialsDTO.setStartTime(employeeResignationDiscussion.getStartTime());
+			organiserDetialsDTO.setDuration(employeeResignationDiscussion.getDuration());
+			organiserDetialsDTO.setStatus(employeeResignationDiscussion.getStatus());
+			organiserDetialsDTO.setFeedback(employeeResignationDiscussion.getFeedback());
+			organiserList.add(organiserDetialsDTO);
+		});
+		exitEmployeeDetailsDTO.setOrganiser(organiserList);
+		return exitEmployeeDetailsDTO;
+	}
+
+
+}
